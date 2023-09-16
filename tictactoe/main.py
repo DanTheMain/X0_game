@@ -1,4 +1,4 @@
-from tictactoe import Game
+from tictactoe.game import Game
 
 
 def main() -> None:
@@ -8,4 +8,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
