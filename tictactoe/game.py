@@ -1,10 +1,18 @@
 import random
 import sys
-from copy import deepcopy
+from enum import Enum, auto
+from itertools import cycle
 
 
-from tictactoe.game_objects import PlayerType, PlayerMark, Player, GameGrid
-from tictactoe.prints import MESSAGES, game_help
+from tictactoe.game_objects import (
+    PlayerType,
+    PlayerMark,
+    Player,
+    User,
+    Bot,
+    GameGrid,
+    Moves,
+)
 
 WIN_CONDITIONS = [
     [1, 2, 3],
@@ -23,86 +31,83 @@ HELP_OPTIONS = ("h", "help")
 GRID_DISPLAY_OPTIONS = ("g", "grid")
 
 
+class GameResult(Enum):
+    USER = auto()
+    BOT = auto()
+    DRAW = auto()
+
+
+def print_game_result(game_result: GameResult) -> None:
+    if game_result == GameResult.USER:
+        print("you won!")
+    elif game_result == GameResult.BOT:
+        print("bot won")
+    else:
+        print("draw")
+
+
 class Game:
     def __init__(self) -> None:
-        self._default_choices = {str(s) for s in range(1, 10)}
-        self._choices = deepcopy(self._default_choices)
         self._grid = GameGrid()
-        self._player_marks = {PlayerMark.O, PlayerMark.X}
-        self._user, self._bot = self._init_players()
-        self._messages = MESSAGES
+        self._moves = Moves()
+        self._user, self._bot = User(), Bot()
+        self._init_player_marks()
 
-    def _init_players(self) -> tuple[Player, Player]:
-        marks = list(self._player_marks)
-        user = Player(PlayerType.USER, marks.pop(random.choice(range(2))))
-        bot = Player(PlayerType.BOT, marks.pop())
-        return user, bot
+    def _init_player_marks(self) -> None:
+        marks = list({PlayerMark.O, PlayerMark.X})
+        self._user.mark = marks.pop(random.choice(range(2)))
+        self._bot.mark = marks.pop()
 
-    def _handle_last_choice(self, message: str) -> None:
-        print("\n".join([message, str(self._grid)]))
+    def handle_last_move(self, game_result: GameResult) -> None:
+        print_game_result(game_result)
+        print(self._grid)
         self.exit_game()
 
-    def _update_valid_choices(self, choice: str) -> None:
-        if not self._choices:
-            self._handle_last_choice(self._messages.draw)
-        self._choices.remove(choice)
+    def update_moves(self, move: str) -> None:
+        if not self._moves:
+            self.handle_last_move(GameResult.DRAW)
+        if not self._moves.remove(move):
+            self.exit_game(f"bad player move {move} detected!")
 
     def _get_player_choices(self, player: Player) -> list[int]:
         return [
             int(cell_number)
             for cell_number, cell_content in self._grid.grid_contents.items()
-            if cell_content == player.MARK.value
+            if cell_content == player.mark.value
         ]
 
     def _check_player_status(self, player: Player) -> None:
         choices = self._get_player_choices(player)
         for win in WIN_CONDITIONS:
             if set(win).issubset(set(choices)):
-                self._handle_last_choice(self._messages.winner.format(player))
+                if player.ptype == PlayerType.USER:
+                    self.handle_last_move(GameResult.USER)
+                else:
+                    self.handle_last_move(GameResult.BOT)
 
-    def _handle_mark_choice(self, player: Player, choice: str) -> None:
-        print(self._messages.choice.format(player, choice))
-        self._grid.update(choice, player.MARK.value)
+    def handle_player_move(self, player: Player, move: str) -> None:
+        print(f'"{player}" choice: {move}')
+        self._grid.update(move, player.mark)
         print(self._grid)
-        self._update_valid_choices(choice)
+        self.update_moves(move)
         self._check_player_status(player)
 
-    def exit_game(self) -> None:
-        print(self._messages.exit_game)
-        sys.exit(0)
-
-    def record_auto_choice(self) -> None:
-        if not self._choices:
-            self._handle_last_choice(self._messages.draw)
-        self._handle_mark_choice(self._bot, random.choice(list(self._choices)))
-
-    def record_user_choice(self, choice: str) -> bool:
-        if choice not in self._choices:
-            print(self._messages.unsupported_input.format(choice, self._choices))
-            return False
-        self._handle_mark_choice(self._user, choice)
-        return True
-
-    def get_user_input(self) -> str:
-        return str(input(self._messages.user_prompt)).lower().strip()
+    def exit_game(self, code: int | str = 0) -> None:
+        print("Exiting game ...")
+        sys.exit(code)
 
     def play(self) -> None:
-        choice = self.get_user_input()
-        while choice not in QUIT_OPTIONS and self._choices:
-            if choice in HELP_OPTIONS:
-                print(
-                    game_help(
-                        str(self._grid),
-                        GRID_DISPLAY_OPTIONS,
-                        self._choices,
-                        QUIT_OPTIONS,
-                        self._user.MARK.value,
-                        self._bot.MARK.value,
-                    )
-                )
-            elif choice in GRID_DISPLAY_OPTIONS:
-                print(self._grid)
-            else:
-                if self.record_user_choice(choice):
-                    self.record_auto_choice()
-            choice = self.get_user_input()
+        move = input(f"Enter any key to start game ({QUIT_OPTIONS} to quit): ")
+        if move in QUIT_OPTIONS:
+            self.exit_game()
+        while self._moves:
+            cycle(
+                [
+                    self.handle_player_move(
+                        self._user, self._user.make_move(self._moves)
+                    ),
+                    self.handle_player_move(
+                        self._bot, self._bot.make_move(self._moves)
+                    ),
+                ]
+            )

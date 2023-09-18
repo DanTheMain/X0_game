@@ -1,14 +1,4 @@
-from enum import StrEnum
 from typing import Iterable
-
-
-class MESSAGES(StrEnum):
-    user_prompt = "Enter your choice: "
-    choice = '"{}" choice: {}'
-    exit_game = "Exiting game ..."
-    draw = "no more valid moves left - it is a draw!"
-    unsupported_input = 'Unsupported input "{}", valid values are {}'
-    winner = "{} is the winner!"
 
 
 def game_help(
