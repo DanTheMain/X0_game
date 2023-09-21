@@ -8,29 +8,6 @@ from typing_extensions import Protocol
 DEFAULT_GRID = {str(s): str(s) for s in range(1, 10)}
 
 
-# class Moves:
-#     def __init__(self) -> None:
-#         self._moves: set[str] = deepcopy(DEFAULT_CHOICES)
-#
-#     def __str__(self) -> str:
-#         return ", ".join([c for c in self._moves])
-#
-#     def get(self) -> set[str]:
-#         return self._moves
-#
-#     def is_empty(self) -> bool:
-#         return bool(self._moves)
-#
-#     def is_valid_move(self, p_move: str) -> bool:
-#         return p_move in self._moves
-#
-#     def remove(self, move: str) -> bool:
-#         if not self.is_empty() and self.is_valid_move(move):
-#             self._moves.remove(move)
-#             return True
-#         return False
-
-
 class GameGrid:
     def __init__(self) -> None:
         self._grid_contents: dict[str, str] = deepcopy(DEFAULT_GRID)
