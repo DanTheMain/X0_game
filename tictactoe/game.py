@@ -36,12 +36,12 @@ def print_game_result(winner: Optional[Player]) -> None:
     if winner is None:
         print("draw")
     else:
-        print(f'{winner} won')
+        print(f"{winner} won")
 
 
 class Game:
     def __init__(self) -> None:
-        self._name = 'tictactoe'
+        self._name = "tictactoe"
         self._grid = GameGrid()
         self._moves = deepcopy(DEFAULT_CHOICES)
         self._user, self._bot = User(), Bot()
@@ -91,8 +91,19 @@ class Game:
         sys.exit(code)
 
     def play(self) -> None:
-        print(game_help(str(self._grid), self._moves, QUIT_OPTIONS, self._user.mark, self._bot.mark))
-        if input(f"Enter any key to start game ({QUIT_OPTIONS} to quit): ") in QUIT_OPTIONS:
+        print(
+            game_help(
+                str(self._grid),
+                list(self._moves),
+                list(QUIT_OPTIONS),
+                self._user.mark,
+                self._bot.mark,
+            )
+        )
+        if (
+            input(f"Enter any key to start game ({QUIT_OPTIONS} to quit): ")
+            in QUIT_OPTIONS
+        ):
             self.exit_game()
         for player in cycle(self.players):
             self.handle_player_move(player)

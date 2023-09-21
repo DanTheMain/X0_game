@@ -46,7 +46,8 @@ class Player(Protocol):
     ptype: PlayerType
     mark: PlayerMark
 
-    def make_move(self, valid_moves: set[str]) -> str: ...
+    def make_move(self, valid_moves: set[str]) -> str:
+        ...
 
 
 def get_input(prompt):
