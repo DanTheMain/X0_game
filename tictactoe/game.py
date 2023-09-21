@@ -1,19 +1,21 @@
-import random
-import sys
-from enum import Enum, auto
+from copy import deepcopy
 from itertools import cycle
+import random
+from typing import Optional
+import sys
 
+from tictactoe.game_help import game_help
 
 from tictactoe.game_objects import (
-    PlayerType,
     PlayerMark,
+    PlayerType,
     Player,
     User,
     Bot,
     GameGrid,
-    Moves,
 )
 
+DEFAULT_CHOICES = {str(s) for s in range(1, 10)}
 WIN_CONDITIONS = [
     [1, 2, 3],
     [4, 5, 6],
@@ -31,43 +33,36 @@ HELP_OPTIONS = ("h", "help")
 GRID_DISPLAY_OPTIONS = ("g", "grid")
 
 
-class GameResult(Enum):
-    USER = auto()
-    BOT = auto()
-    DRAW = auto()
-
-
-def print_game_result(game_result: GameResult) -> None:
-    if game_result == GameResult.USER:
-        print("you won!")
-    elif game_result == GameResult.BOT:
-        print("bot won")
-    else:
+def print_game_result(winner: Optional[Player]) -> None:
+    if winner is None:
         print("draw")
+    else:
+        print(f'{winner} won')
 
 
 class Game:
     def __init__(self) -> None:
+        self._name = 'tictactoe'
         self._grid = GameGrid()
-        self._moves = Moves()
+        self._moves = deepcopy(DEFAULT_CHOICES)
         self._user, self._bot = User(), Bot()
         self._init_player_marks()
+        self.players = (self._user, self._bot)
 
     def _init_player_marks(self) -> None:
-        marks = list({PlayerMark.O, PlayerMark.X})
+        marks = [PlayerMark.X, PlayerMark.O]
         self._user.mark = marks.pop(random.choice(range(2)))
         self._bot.mark = marks.pop()
 
-    def handle_last_move(self, game_result: GameResult) -> None:
-        print_game_result(game_result)
+    def handle_last_move(self, winner: Player | None) -> None:
+        print_game_result(winner)
         print(self._grid)
         self.exit_game()
 
     def update_moves(self, move: str) -> None:
         if not self._moves:
-            self.handle_last_move(GameResult.DRAW)
-        if not self._moves.remove(move):
-            self.exit_game(f"bad player move {move} detected!")
+            self.handle_last_move(winner=None)
+        self._moves.remove(move)
 
     def _get_player_choices(self, player: Player) -> list[int]:
         return [
@@ -80,12 +75,12 @@ class Game:
         choices = self._get_player_choices(player)
         for win in WIN_CONDITIONS:
             if set(win).issubset(set(choices)):
-                if player.ptype == PlayerType.USER:
-                    self.handle_last_move(GameResult.USER)
-                else:
-                    self.handle_last_move(GameResult.BOT)
+                self.handle_last_move(player)
 
-    def handle_player_move(self, player: Player, move: str) -> None:
+    def handle_player_move(self, player: Player) -> None:
+        if not self._moves:
+            raise RuntimeError(f"Game {self._name} ran out of moves!")
+        move = player.make_move(self._moves)
         print(f'"{player}" choice: {move}')
         self._grid.update(move, player.mark)
         print(self._grid)
@@ -97,17 +92,8 @@ class Game:
         sys.exit(code)
 
     def play(self) -> None:
-        move = input(f"Enter any key to start game ({QUIT_OPTIONS} to quit): ")
-        if move in QUIT_OPTIONS:
+        print(game_help(str(self._grid), self._moves, QUIT_OPTIONS, self._user.mark, self._bot.mark))
+        if input(f"Enter any key to start game ({QUIT_OPTIONS} to quit): ") in QUIT_OPTIONS:
             self.exit_game()
-        while self._moves:
-            cycle(
-                [
-                    self.handle_player_move(
-                        self._user, self._user.make_move(self._moves)
-                    ),
-                    self.handle_player_move(
-                        self._bot, self._bot.make_move(self._moves)
-                    ),
-                ]
-            )
+        for player in cycle(self.players):
+            self.handle_player_move(player)
